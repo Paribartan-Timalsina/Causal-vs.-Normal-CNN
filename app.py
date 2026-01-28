@@ -12,19 +12,14 @@ from utils.visualization import plot_probabilities
 from utils.constants import COLOR_MAP, COLOR_NAMES
 from utils.data_utils import get_colored_mnist
 
-# =========================================================
 # PAGE CONFIG
-# =========================================================
 st.set_page_config(
     page_title="Causal AI: Breaking Spurious Correlations",
-    page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# =========================================================
 # CUSTOM CSS
-# =========================================================
 st.markdown("""
 <style>
     .main-header {
@@ -44,29 +39,25 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# =========================================================
 # HEADER
-# =========================================================
-st.markdown('<h1 class="main-header">🧠 Causal AI vs. Standard Deep Learning</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header"> Causal AI vs. Standard Deep Learning</h1>', unsafe_allow_html=True)
 
 st.markdown("""
 This application demonstrates the difference between **Standard ML** and **Causal ML** approaches when dealing with spurious correlations.
 
-### 🔍 The Problem:
+### The Problem:
 During training, each digit was **perfectly correlated with a specific color**. Standard models learn this "shortcut" 
 instead of the actual digit shape. When tested with random colors, they fail dramatically.
 
-### ✨ The Solution:
+### The Solution:
 **Invariant Risk Minimization (IRM)** trains across multiple environments with different correlation strengths, 
 forcing the model to learn only the invariant causal features (digit shape) while ignoring unstable correlations (color).
 """)
 
-# =========================================================
 # SIDEBAR: COLOR MAPPING
-# =========================================================
-st.sidebar.header("🎨 Training Data Color Scheme")
+st.sidebar.header("Training Data Color Scheme")
 st.sidebar.markdown("""
-**⚠️ IMPORTANT: Spurious Correlation Alert!**
+**IMPORTANT: Spurious Correlation Alert!**
 
 During training, each digit was assigned a **fixed color**:
 """)
@@ -94,16 +85,12 @@ st.sidebar.markdown("""
 - IRM learns "If shape looks like 0 → predict 0" (regardless of color)
 """)
 
-# =========================================================
 # DEVICE
-# =========================================================
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-st.sidebar.info(f"🖥️ Running on: **{device}**")
+st.sidebar.info(f"Running on: **{device}**")
 
-# =========================================================
 # MODEL SELECTION
-# =========================================================
-st.header("1️⃣ Choose a Model")
+st.header("Choose a Model")
 
 model_type = st.selectbox(
     "Select Model Architecture:",
@@ -117,25 +104,21 @@ model = load_model(model_type, device)
 model_descriptions = {
     "Simple CNN": "⚡ **Fast but fragile** - Prone to learning spurious correlations like color.",
     "ResNet-18": "🏗️ **Deeper architecture** - Still learns shortcuts despite more capacity.",
-    "Invariant Risk Minimization (IRM) CNN": "🎯 **Causal Learning** - Trained to ignore spurious correlations across environments."
+    "Invariant Risk Minimization (IRM) CNN": "**Causal Learning** - Trained to ignore spurious correlations across environments."
 }
 st.info(model_descriptions[model_type])
 
-# =========================================================
 # MODE SELECTION
-# =========================================================
-st.header("2️⃣ Choose Test Mode")
+st.header("Choose Test Mode")
 
 mode = st.radio(
     "Select how you want to test the model:",
-    ["📊 Pre-generated Dataset", "📤 Upload Your Own Image"],
+    ["Pre-generated Dataset", "Upload Your Own Image"],
     horizontal=True
 )
 
-# =========================================================
 # UPLOAD MODE
-# =========================================================
-if mode == "📤 Upload Your Own Image":
+if mode == "Upload Your Own Image":
     st.markdown("""
     Upload a handwritten digit image and choose a color to apply.  
     See if the model is fooled by the color or correctly identifies the shape!
@@ -181,7 +164,7 @@ if mode == "📤 Upload Your Own Image":
         # Inference
         predicted, confidence, probs = predict(model, img_tensor, device)
 
-        st.header("3️⃣ Prediction Results")
+        st.header("Prediction Results")
         
         col1, col2 = st.columns([1, 2])
         
@@ -192,9 +175,9 @@ if mode == "📤 Upload Your Own Image":
             
             # Check if model might be fooled by color
             if predicted == selected_color:
-                st.warning(f"⚠️ Model predicted **{predicted}** and color is **{COLOR_NAMES[selected_color]}**. Might be fooled by color!")
+                st.warning(f"Model predicted **{predicted}** and color is **{COLOR_NAMES[selected_color]}**. Might be fooled by color!")
             else:
-                st.info(f"ℹ️ Model predicted **{predicted}** despite **{COLOR_NAMES[selected_color]}** color. Good sign!")
+                st.info(f"Model predicted **{predicted}** despite **{COLOR_NAMES[selected_color]}** color. Good sign!")
         
         with col2:
             st.subheader("Confidence Distribution")
@@ -203,22 +186,22 @@ if mode == "📤 Upload Your Own Image":
         st.divider()
         
         # Analysis
-        st.subheader("🔍 Analysis")
+        st.subheader("Analysis")
         
         if predicted == selected_color:
             st.error(f"""
-            **🚨 Potential Color Bias Detected!**
+            **Potential Color Bias Detected!**
             
             The model predicted **{predicted}**, which matches the applied color **{COLOR_NAMES[selected_color]}**.
             
             This suggests the model might be relying on the **spurious correlation** (color) rather than 
             the **causal feature** (digit shape).
             
-            💡 **Try**: Apply a different color to see if the prediction changes!
+            **Try**: Apply a different color to see if the prediction changes!
             """)
         else:
             st.success(f"""
-            **✅ Good Shape Recognition!**
+            **Good Shape Recognition!**
             
             The model predicted **{predicted}** despite the **{COLOR_NAMES[selected_color]}** color being applied.
             
@@ -226,11 +209,9 @@ if mode == "📤 Upload Your Own Image":
             """)
     
     else:
-        st.info("👆 Please upload an image to test the model")
+        st.info("Please upload an image to test the model")
 
-# =========================================================
 # DATASET MODE
-# =========================================================
 else:
     st.markdown("""
     We generate MNIST digits with **random colors** (distribution shift from training).  
@@ -239,7 +220,7 @@ else:
 
     col1, col2 = st.columns([1, 4])
     with col1:
-        if st.button("🎲 Generate New Samples", use_container_width=True):
+        if st.button("Generate New Samples", use_container_width=True):
             st.session_state.samples = get_colored_mnist(train=False)
             st.session_state.sample_indices = None
 
@@ -252,7 +233,7 @@ else:
     samples = st.session_state.samples
     indices = st.session_state.sample_indices
     
-    st.header("3️⃣ Model Predictions")
+    st.header("Model Predictions")
     cols = st.columns(5)
 
     correct_count = 0
@@ -280,9 +261,9 @@ else:
             
             # Show results
             if is_correct:
-                st.success(f"✅ **Correct!**")
+                st.success(f"**Correct!**")
             else:
-                st.error(f"❌ **Wrong**")
+                st.error(f"**Wrong**")
             
             st.markdown(f"**True:** {true_label}")
             st.markdown(f"**Predicted:** {predicted}")
@@ -307,13 +288,11 @@ else:
     with col3:
         st.metric("Color-Based Errors", color_fooled_count)
 
-# =========================================================
 # EXPLANATION SECTIONS
-# =========================================================
 st.divider()
-st.header("📚 Understanding the Results")
+st.header("Understanding the Results")
 
-with st.expander("🔬 Why do standard models fail?"):
+with st.expander("Why do standard models fail?"):
     st.markdown("""
     **The Shortcut Learning Problem:**
     
@@ -328,7 +307,7 @@ with st.expander("🔬 Why do standard models fail?"):
     where colors are randomized (~10% accuracy, same as random guessing).
     """)
 
-with st.expander("✨ How does IRM solve this?"):
+with st.expander("How does IRM solve this?"):
     st.markdown("""
     **Invariant Risk Minimization (IRM):**
     
@@ -342,18 +321,6 @@ with st.expander("✨ How does IRM solve this?"):
     3. **Result**: The model is forced to find features that work everywhere (digit shape)
        and ignore features that are unreliable (color)
     
-    **Test Accuracy: ~97%** even with random colors! 🎉
-    """)
-
-with st.expander("💡 Real-world applications"):
-    st.markdown("""
-    This same problem appears in many real-world scenarios:
-    
-    - **Medical Diagnosis**: Model relies on hospital equipment watermarks instead of actual symptoms
-    - **Hiring Systems**: Model uses gender/ethnicity as proxy instead of actual qualifications
-    - **Autonomous Vehicles**: Model relies on clear weather patterns instead of learning robust road rules
-    - **Credit Scoring**: Model uses zip code as proxy for creditworthiness instead of actual financial behavior
-    
-    **Causal ML techniques like IRM help build more robust and fair AI systems!**
+    **Test Accuracy: ~97%** even with random colors!
     """)
 
