@@ -170,25 +170,3 @@ InvariancePenalty = ||∇_w Risk_env1 - ∇_w Risk_env2||²
 ```
 
 The penalty is high when the optimal classifier differs between environments. By minimizing it, IRM finds features that are predictive **everywhere**.
-
-### Model Architectures
-
-All three models use similar architectures:
-
-**Simple CNN**:
-- 2 Conv layers (3→32→64 channels)
-- 2 FC layers (3136→128→10)
-- ~270K parameters
-
-**ResNet-18**:
-- Modified for 28×28 images
-- Smaller initial conv kernel (3×3 instead of 7×7)
-- No initial maxpool
-- ~11M parameters
-
-**IRM CNN**:
-- Same architecture as Simple CNN
-- Different training objective (adds invariance penalty)
-- ~270K parameters
-
-**Key Insight**: IRM doesn't need more capacity—it needs better training!
