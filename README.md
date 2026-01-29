@@ -12,7 +12,6 @@ This project demonstrates the critical difference between **Standard Machine Lea
 
 - **Training Accuracy**: Simple CNN & ResNet = 100%, IRM = 99.5%
 - **Test Accuracy (OOD)**: Simple CNN & ResNet = ~10%, IRM = 97.6%
-- **Training Time**: 2-5 minutes on CPU
 - **Interactive Demo**: Upload your own handwritten digits!
 
 ## The Problem
