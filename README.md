@@ -27,7 +27,7 @@ Standard deep learning models often learn "shortcuts" - spurious correlations th
 |-------|------------------|---------------|-----------------|
 | **Simple CNN** | ~100% | ~10% | Color (spurious) |
 | **ResNet-18** | ~100% | ~10% | Color (spurious) |
-| **IRM CNN** | ~100% | ~97% | Shape (causal) |
+| **IRM CNN** | ~98% | ~97% | Shape (causal) |
 
 ## Quick Start
 
