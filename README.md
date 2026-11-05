@@ -1,33 +1,55 @@
 # Causal AI: Breaking Spurious Correlations
 
-> **An interactive demonstration of why standard deep learning fails on out-of-distribution data and how Invariant Risk Minimization (IRM) solves this through causal learning.**
+> **An interactive demonstration of how standard CNNs learn shortcuts on colored MNIST, and an experiment testing when Invariant Risk Minimization (IRM) actually helps.**
 
 ## Overview
 
-This project demonstrates the critical difference between **Standard Machine Learning** and **Causal Machine Learning** when dealing with spurious correlations. Through an interactive web application, you'll see firsthand how models can achieve 100% training accuracy yet completely fail on test data—and how causal learning prevents this.
+When a digit is always red during training, a CNN learns "red = 0" instead of the digit's shape, and fails as soon as test colors are random. This project shows that failure with a Simple CNN and ResNet-18, then compares standard training (ERM) with IRM on the same training data.
 
-**Key Insight**: Standard models learn shortcuts. When a digit is always red during training, the model learns "red = 0" instead of learning the digit's shape. This fails instantly when test data has random colors.
+The main finding: IRM only beats standard training when the spurious feature (color) is more predictive than the causal one (shape) during training. When shape is already the better clue, a plain CNN learns it on its own and IRM adds nothing.
 
-### Quick Stats
+## Results
 
-- **Training Accuracy**: Simple CNN & ResNet = 100%, IRM = 99.5%
-- **Test Accuracy (OOD)**: Simple CNN & ResNet = ~10%, IRM = 97.6%
-- **Interactive Demo**: Upload your own handwritten digits!
+All test sets are built from the MNIST **test split**, so no test image is seen during training.
 
-## The Problem
+### 1. Shortcut learning
 
-Standard deep learning models often learn "shortcuts" - spurious correlations that work well on training data but fail in real-world scenarios. This project uses a colored MNIST dataset where:
+Simple CNN and ResNet-18 trained on data where every digit always has its label's color, tested on random colors:
 
-### Test Data:
-- Digits are colored **randomly** (distribution shift!)
-- This forces models to rely on **shape** rather than **color**
+| Model | Training Accuracy | Test Accuracy (random colors) |
+|-------|------------------|-------------------------------|
+| **Simple CNN** | 100% | 9.63% |
+| **ResNet-18** | 99.96% | 10.31% |
 
-### Results:
-| Model | Training Accuracy | Test Accuracy | Learned Feature |
-|-------|------------------|---------------|-----------------|
-| **Simple CNN** | ~100% | ~10% | Color (spurious) |
-| **ResNet-18** | ~100% | ~10% | Color (spurious) |
-| **IRM CNN** | ~98% | ~97% | Shape (causal) |
+Both models learn color, not shape, and drop to chance level.
+
+### 2. ERM vs IRM on the same environments
+
+Two training environments from disjoint halves of the MNIST train split. Color matches the label 90% of the time in env 1 and 80% in env 2. The ERM baseline uses the same model, data and schedule as IRM, only without the penalty. IRM switches the penalty on after 6 warm-up epochs.
+
+**Without label noise**
+
+| Model | Env 1 (train) | Test, 10% color corr. | Test, random colors |
+|-------|---------------|-----------------------|---------------------|
+| **ERM** | 99.94% | 97.58% | 97.43% |
+| **IRM** | 99.46% | 96.36% | 95.89% |
+
+IRM gives no benefit here. Shape always predicts the label while color is wrong 10-20% of the time, so plain ERM already learns shape.
+
+**With 25% label noise** (the setting used in the IRM paper)
+
+Each label is swapped for a different random digit with probability 0.25, before coloring. Shape now predicts the label only 75% of the time, less often than color (80-90%), so color becomes the easier shortcut. The best achievable test accuracy is 75%.
+
+| Model | Env 1 (train) | Test, 10% color corr. | Test, random colors |
+|-------|---------------|-----------------------|---------------------|
+| **ERM** | 91.40% | 26.83% | 18.86% |
+| **IRM** | 78.19% | 43.64% | 39.88% |
+
+ERM latches onto color and collapses on both test sets. IRM gives up training accuracy and roughly doubles test accuracy, though it stays well below the 75% ceiling. Results are from a single seed.
+
+### Note on an earlier version
+
+An earlier version of this project reported IRM at 97.6% against ~10% for the Simple CNN. That comparison was flawed: the IRM test set was built from the training images, and IRM was trained on different data than the Simple CNN. Adding an ERM baseline on the same environments showed it matched IRM, which led to the label-noise experiment above.
 
 ## Quick Start
 
@@ -37,9 +59,10 @@ Standard deep learning models often learn "shortcuts" - spurious correlations th
 
 ### Installation
 
-1. **Clone the repository** (or download the files)
+1. **Clone the repository**
 ```bash
-cd "Causal AI and Normal"
+git clone https://github.com/Paribartan-Timalsina/Causal-vs.-Normal-CNN.git
+cd Causal-vs.-Normal-CNN
 ```
 
 2. **Install dependencies**
@@ -66,6 +89,10 @@ The app will automatically:
 - Download MNIST data if not already present (~11MB)
 - Load pre-trained model weights from the `models/` folder
 
+### Training the Models
+
+All training is in `CNN and IRM.ipynb` (made for Google Colab with a GPU). Set `LABEL_NOISE` in the IRM data cell to `0.0` or `0.25` to reproduce the two IRM tables.
+
 ### First Time Usage
 
 1. **Explore the sidebar** to see the color-to-digit mapping
@@ -73,7 +100,7 @@ The app will automatically:
 3. **Choose a test mode**:
    - Start with "Pre-generated Dataset" to see the problem
    - Then try "Upload Your Own Image" with a hand-drawn digit
-4. **Compare models**: Switch to IRM CNN to see how causal learning solves the problem
+4. **Compare models**: Switch to IRM CNN and see it rely on shape
 
 ## Demo Scenario
 
@@ -92,63 +119,48 @@ The app will automatically:
    - Simple CNN will predict 7 ✓ (but for the wrong reason!)
 4. **Change to Red color** (which represents 0)
    - Simple CNN will predict 0 ✗ (fooled by color!)
-   - Invariant Risk Minimization CNN will still predict 7 ✓ (learned the shape!)
+   - IRM CNN will still predict 7 ✓ (it relies on shape)
 
-This demonstrates that Simple CNN uses color as a shortcut, while IRM CNN learned the actual causal feature (digit shape).
-
+The IRM model in the app is trained without label noise. Its advantage over the Simple CNN comes mostly from its training environments, where color is not always reliable, rather than from the IRM penalty (see Results).
 
 ## What is Invariant Risk Minimization (IRM)?
 
 IRM is a causal learning framework that trains models to:
 
 1. **Find invariant features**: Features that are predictive across all training environments
-2. **Ignore spurious correlations**: Features that only work in specific contexts
+2. **Ignore spurious correlations**: Features whose relationship with the label changes between environments
 
 ### Key Difference
 
-- **Simple CNN**: Minimizes standard cross-entropy loss → learns any pattern (including spurious correlations)
-- **IRM CNN**: Minimizes `Risk + λ × InvariancePenalty` → forced to learn only invariant features across environments
+- **ERM (standard training)**: Minimizes cross-entropy loss over all training data → uses whatever feature predicts best, including spurious ones
+- **IRM**: Minimizes `Risk + λ × Penalty` → prefers features for which the same classifier is optimal in every environment
 
 ## Key Concepts
 
 ### Spurious Correlation
-A pattern in training data that doesn't reflect true causality. 
+A pattern in training data that doesn't reflect true causality.
 
-**Example in this project**: Color perfectly predicts digit in training data, but color doesn't *cause* the digit label.
+**Example in this project**: Color predicts the digit in training data, but color doesn't *cause* the digit label.
 
 **Classic example**: Ice cream sales correlate with drowning deaths, but ice cream doesn't cause drowning (both are caused by summer weather).
 
 ### Distribution Shift (Out-of-Distribution Testing)
 When test data comes from a different distribution than training data. Standard ML models often fail dramatically under distribution shift.
 
-**In this project**: 
-- Training: Digit 0 is always Red, Digit 1 is always Green, etc.
+**In this project**:
+- Training: Digit 0 is always (or mostly) Red, Digit 1 is Green, etc.
 - Testing: Colors are assigned randomly
-- **Result**: Simple models fail because their learned "rule" (Color → Digit) no longer works
+- **Result**: Models that learned "Color → Digit" fail because that rule no longer holds
 
 ### Causal Features vs. Spurious Features
 
-| Type | Example | Stability | Performance on OOD Data |
-|------|---------|-----------|------------------------|
-| **Spurious** | Color of digit | Changes across environments | Poor (~10%) |
-| **Causal** | Shape of digit | Invariant across environments | Good (~97%) |
+| Type | Example | Stability across environments |
+|------|---------|-------------------------------|
+| **Spurious** | Color of digit | Changes (90% in env 1, 80% in env 2) |
+| **Causal** | Shape of digit | Stays the same in every environment |
 
-### Invariant Risk Minimization (IRM)
-A training framework that:
-1. Trains across multiple environments with different spurious correlations
-2. Adds a penalty for features that aren't predictive across ALL environments
-3. Forces the model to learn only invariant (causal) features
-
-**Mathematical Formulation**:
-```
-minimize: Risk(Φ) + λ × Penalty(Φ)
-
-where:
-- Risk(Φ) = Average prediction error across environments
-- Penalty(Φ) = Variance of optimal classifiers across environments
-```
-
-When the penalty is low, it means the same features work across all environments (invariant/causal).
+### Label Noise
+Labels swapped for a wrong digit on purpose. It makes shape an imperfect clue (75%) while color stays a stronger one (80-90%), so a standard model is tempted to use color. This is the situation IRM is designed for, and the same setup is used in the original IRM paper.
 
 ## Technical Details
 
@@ -156,17 +168,25 @@ When the penalty is low, it means the same features work across all environments
 
 Standard Empirical Risk Minimization (ERM):
 ```
-minimize: Average Loss across all training data
+minimize: Average loss across all training data
 ```
 
-This allows the model to use **any** predictive feature, including spurious ones.
+This lets the model use **any** predictive feature. If color predicts the label better than shape in the training data, the model uses color.
 
-### How IRM Succeeds
+### The IRM Objective (IRMv1)
 
 ```
-minimize: Risk + λ × InvariancePenalty
-
-InvariancePenalty = ||∇_w Risk_env1 - ∇_w Risk_env2||²
+minimize over Φ:   Σ_e R_e(Φ)  +  λ · Σ_e ‖ ∇_w R_e(w · Φ) |_{w=1} ‖²
 ```
 
-The penalty is high when the optimal classifier differs between environments. By minimizing it, IRM finds features that are predictive **everywhere**.
+- `R_e` is the cross-entropy loss in environment `e`
+- `Φ` is the network, and `w` is a dummy scale on its output, fixed at 1.0
+- The penalty is the squared gradient of each environment's loss with respect to `w`
+
+The penalty is zero only when scaling the classifier would not reduce the loss in any environment, meaning the same classifier is optimal everywhere. Features like color, whose link to the label changes between environments, cannot satisfy this, so the penalty pushes the model away from them.
+
+Training details: λ = 1000, switched on after 6 warm-up epochs of plain ERM. When the penalty is on, the loss is divided by λ and the Adam optimizer is reset to keep training stable, following the original IRM implementation.
+
+## Reference
+
+Arjovsky, M., Bottou, L., Gulrajani, I., & Lopez-Paz, D. (2019). *Invariant Risk Minimization.* arXiv:1907.02893.

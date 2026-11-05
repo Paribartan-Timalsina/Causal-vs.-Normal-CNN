@@ -321,6 +321,9 @@ with st.expander("How does IRM solve this?"):
     3. **Result**: The model is forced to find features that work everywhere (digit shape)
        and ignore features that are unreliable (color)
     
-    **Test Accuracy: ~97%** even with random colors!
+    **Result:** ~96% test accuracy with random colors. A plain CNN trained on the same two
+    environments also gets ~97%, because there color is wrong 10-20% of the time while shape
+    is always right. IRM only pulls ahead when color is the stronger clue during training
+    (see the label-noise experiment in the README).
     """)
 

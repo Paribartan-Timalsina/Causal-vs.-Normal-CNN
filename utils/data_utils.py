@@ -46,35 +46,26 @@ def get_colored_mnist(train=True, data_dir='./data'):
     return torch.utils.data.TensorDataset(images_rgb, labels)
 
 
-def get_biased_mnist_env(correlation_prob, data_dir='./data'):
+def get_biased_mnist_env(correlation_prob, train=True, subset=slice(None), label_noise=0.0, data_dir='./data'):
     """
-    Generates biased MNIST for IRM training with specific correlation strength.
-    
-    Args:
-        correlation_prob (float): Probability that color matches label (0.0 to 1.0).
-                                 1.0 = perfect correlation, 0.5 = random, 0.1 = mostly wrong.
-        data_dir (str): Directory to store MNIST data.
-    
-    Returns:
-        TensorDataset: Dataset with controlled spurious correlation.
+    Colored MNIST environment for IRM.
+
+    correlation_prob: chance a digit gets its label's color, otherwise a random color.
+    train: use the MNIST train split if True, the test split if False.
+    subset: slice of the split, so environments can use disjoint images.
+    label_noise: chance a label is replaced by a different random digit (applied before coloring).
     """
-    dataset = datasets.MNIST(data_dir, train=True, download=True)
-    images = dataset.data.float() / 255.0
-    labels = dataset.targets
+    dataset = datasets.MNIST(data_dir, train=train, download=True)
+    images = dataset.data[subset].float() / 255.0
+    labels = dataset.targets[subset].clone()
+    n = len(labels)
 
-    images_rgb = images.unsqueeze(1).repeat(1, 3, 1, 1)
-    final_colors = torch.zeros(len(labels), 3)
+    if label_noise > 0:
+        flip = torch.rand(n) < label_noise
+        labels = torch.where(flip, (labels + torch.randint(1, 10, (n,))) % 10, labels)
 
-    for i in range(len(labels)):
-        if torch.rand(1).item() < correlation_prob:
-            # Assign color matching the label
-            final_colors[i] = COLOR_MAP[labels[i]]
-        else:
-            # Assign random color
-            rand_idx = torch.randint(0, 10, (1,)).item()
-            final_colors[i] = COLOR_MAP[rand_idx]
-
-    final_colors = final_colors.view(-1, 3, 1, 1)
-    images_rgb = images_rgb * final_colors
+    use_label_color = torch.rand(n) < correlation_prob
+    color_idx = torch.where(use_label_color, labels, torch.randint(0, 10, (n,)))
+    images_rgb = images.unsqueeze(1).repeat(1, 3, 1, 1) * COLOR_MAP[color_idx].view(-1, 3, 1, 1)
 
     return torch.utils.data.TensorDataset(images_rgb, labels)
