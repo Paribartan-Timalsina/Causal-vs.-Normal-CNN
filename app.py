@@ -261,9 +261,9 @@ else:
             
             # Show results
             if is_correct:
-                st.success(f"**Correct!**")
+                st.success("**Correct!**")
             else:
-                st.error(f"**Wrong**")
+                st.error("**Wrong**")
             
             st.markdown(f"**True:** {true_label}")
             st.markdown(f"**Predicted:** {predicted}")

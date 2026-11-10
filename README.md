@@ -47,10 +47,6 @@ Each label is swapped for a different random digit with probability 0.25, before
 
 ERM latches onto color and collapses on both test sets. IRM gives up training accuracy and roughly doubles test accuracy, though it stays well below the 75% ceiling. Results are from a single seed.
 
-### Note on an earlier version
-
-An earlier version of this project reported IRM at 97.6% against ~10% for the Simple CNN. That comparison was flawed: the IRM test set was built from the training images, and IRM was trained on different data than the Simple CNN. Adding an ERM baseline on the same environments showed it matched IRM, which led to the label-noise experiment above.
-
 ## Quick Start
 
 ### Prerequisites
@@ -91,7 +87,18 @@ The app will automatically:
 
 ### Training the Models
 
-All training is in `CNN and IRM.ipynb` (made for Google Colab with a GPU). Set `LABEL_NOISE` in the IRM data cell to `0.0` or `0.25` to reproduce the two IRM tables.
+Run the training scripts from the repository root. Each one saves its weights to `models/`, where the app loads them from.
+
+```bash
+python -m training.train_simple_cnn
+python -m training.train_resnet
+python -m training.train_irm --compare-erm                     # IRM vs ERM, no label noise
+python -m training.train_irm --compare-erm --label-noise 0.25  # IRM paper setting
+```
+
+All scripts take `--epochs`, `--lr`, `--batch-size`, `--seed`, `--data-dir` and `--out`. `train_irm.py` also takes `--warmup`, `--penalty-weight` and `--label-noise`; `--compare-erm` trains an ERM baseline on the same environments and prints both models' accuracies. A GPU is recommended, ResNet-18 in particular is slow on CPU.
+
+The same experiments are also in `CNN and IRM.ipynb` (made for Google Colab). Set `LABEL_NOISE` in the IRM data cell to `0.0` or `0.25` to reproduce the two IRM tables.
 
 ### First Time Usage
 

@@ -3,7 +3,6 @@ Invariant Risk Minimization (IRM) model and training utilities.
 IRM is a causal machine learning approach that learns representations invariant across environments.
 """
 
-import torch
 import torch.nn as nn
 import torch.autograd as autograd
 
